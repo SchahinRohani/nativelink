@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"text/template"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	git "github.com/go-git/go-git/v5"
-	"gopkg.in/yaml.v3"
 	"sigs.k8s.io/kind/pkg/cluster"
 )
 
@@ -48,91 +48,76 @@ func gitSrcRoot() string {
 //     store available to e.g. pipelines running in the cluster. This way such
 //     pipelines don't need to build rebuild anything that was built on the host
 //     already.
-//  3. Nodes are set up to be compatible with CubeFS. By default these configs
-//     are unused. However, if CubeFS is deployed to the cluster, the data in
-//     these volumes persists beyond cluster destruction. Combined with CubeFS's
-//     CSI driver this allows creating realistic PersistentVolumes on the fly and
-//     in combination with the S3 endpoints allows simulating S3 storage buckets.
-//  4. Containerd in the nodes is patched to be compatible with a pass-through
+//  3. Containerd in the nodes is patched to be compatible with a pass-through
 //     container registry. This allows creating a registry that attaches to both
 //     the hosts default "bridge" network and the cluster's "kind" network so
 //     that images copied to the host's local registry become available to the
 //     kind nodes as well.
 
-//go:embed config.yaml
-var kindDevConfig string
+//go:embed kind-config.template.yaml
+var kindTemplate string
 
+// Define the WorkerNode struct.
+type WorkerNodes []struct {
+	ExtraMounts []ExtraMount
+}
+
+// Define the ExtraMount struct.
 type ExtraMount struct {
-	HostPath      string `yaml:"hostPath"`
-	ContainerPath string `yaml:"containerPath"`
-	ReadOnly      bool   `yaml:"readOnly,omitempty"`
+	HostPath      string
+	ContainerPath string
+	ReadOnly      bool
 }
 
-type Networking struct {
-	DisableDefaultCNI bool   `yaml:"disableDefaultCNI"` //nolint:tagliatelle
-	KubeProxyMode     string `yaml:"kubeProxyMode"`
-}
-
-type Node struct {
-	Role        string       `yaml:"role"`
-	ExtraMounts []ExtraMount `yaml:"extraMounts,omitempty"`
-}
-
-type ClusterConfig struct {
-	Kind                    string     `yaml:"kind"`
-	APIVersion              string     `yaml:"apiVersion"`
-	Networking              Networking `yaml:"networking"`
-	Nodes                   []Node     `yaml:"nodes"`
-	ContainerdConfigPatches []string   `yaml:"containerdConfigPatches"`
-}
-
-func (c *ClusterConfig) get() *ClusterConfig {
-	err := yaml.Unmarshal([]byte(kindDevConfig), c)
+// Populate the Kind config template with WorkerNodes data.
+func populateKindConfig(workerNodes WorkerNodes) (bytes.Buffer, error) {
+	tmpl, err := template.New("kindConfig").Parse(kindTemplate)
 	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
+		log.Fatalf("Error parsing config template: %v", err)
 	}
 
-	return c
+	var populatedConfig bytes.Buffer
+	if err := tmpl.Execute(&populatedConfig, workerNodes); err != nil {
+		return populatedConfig, fmt.Errorf(
+			"failed to populate kind config: %w",
+			err,
+		)
+	}
+
+	return populatedConfig, nil
 }
 
 func CreateLocalKindConfig() bytes.Buffer {
-	var config ClusterConfig
+	numNodes := 3
 
-	config.get()
+	// Initialize the WorkerNodes struct
+	workerNodes := make(WorkerNodes, numNodes)
 
-	gitRoot := gitSrcRoot()
-
-	for node := range config.Nodes {
-		if config.Nodes[node].Role == "worker" {
-			config.Nodes[node].ExtraMounts = append(
-				config.Nodes[node].ExtraMounts,
-				ExtraMount{
-					HostPath:      gitRoot,
-					ContainerPath: "/mnt/src_root",
+	// Populate ExtraMounts for each node
+	for workerNode := range workerNodes {
+		workerNodes[workerNode].ExtraMounts = append(
+			workerNodes[workerNode].ExtraMounts,
+			ExtraMount{
+				HostPath:      gitSrcRoot(),
+				ContainerPath: "/mnt/src_root",
+			},
+		)
+		// Nix caching doesn't work on MacOS yet.
+		if runtime.GOOS == "linux" {
+			workerNodes[workerNode].ExtraMounts = append(
+				workerNodes[workerNode].ExtraMounts, ExtraMount{
+					HostPath:      "/nix",
+					ContainerPath: "/nix",
+					ReadOnly:      false,
 				},
 			)
-			if runtime.GOOS == "linux" {
-				config.Nodes[node].ExtraMounts = append(
-					config.Nodes[node].ExtraMounts,
-					ExtraMount{
-						HostPath:      "/nix",
-						ContainerPath: "/nix",
-						ReadOnly:      false,
-					},
-				)
-			}
 		}
 	}
 
-	// Marshal the config back to YAML.
-	configYAML, err := yaml.Marshal(config)
+	kindConfig, err := populateKindConfig(workerNodes)
 	if err != nil {
 		log.Fatalf("Error marshalling config to YAML: %v", err)
 	}
-
-	var kindConfig bytes.Buffer
-
-	kindConfig.Write(configYAML)
 
 	return kindConfig
 }

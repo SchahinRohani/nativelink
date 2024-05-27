@@ -1,6 +1,4 @@
-# TODO(aaronmondal): There should just be a single gateway. But that's currently
-#                    bugged: https://github.com/cilium/cilium/issues/29099
-# ---
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -25,10 +23,9 @@ metadata:
   namespace: kube-system
 spec:
   parentRefs:
-    - name: hubble-gateway
-      namespace: default
+    - sectionName: hubble-gateway
+      name: hubble-gateway
   rules:
-    # General match with only path
     - matches:
         - path:
             value: /
@@ -44,7 +41,6 @@ metadata:
 spec:
   parentRefs:
     - sectionName: tkn-gateway
-      namespace: default
       name: tkn-gateway
   rules:
     - matches:

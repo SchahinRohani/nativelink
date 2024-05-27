@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -20,44 +21,61 @@ import (
 	gatewayClient "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
 
-// Embed the envoy_template.yaml
+// Embed the envoy.template.yaml
 //
-//go:embed embedded/envoy_template.yaml
+//go:embed embedded/envoy.template.yaml
 var envoyTemplate string
 
-type Port struct {
+// Route struct representing a route with prefix, cluster, and optional gRPC field.
+type RouteConfig struct {
+	Prefix string
+	Route  Route
+	GRPC   bool
+}
+
+type Route struct {
+	Cluster       string
+	PrefixRewrite string
+}
+
+type Gateway struct {
 	ExternalPort int
 	InternalPort int
+	Routes       []RouteConfig
 }
 
 // A local loadbalancer.
 type Loadbalancer struct {
-	Ports        []Port
+	Gateways     []Gateway
 	Dependencies []pulumi.Resource
 }
 
 // Gateway struct to hold name and IP.
-type Gateway struct {
-	Name string
-	IP   string
+type InternalGateway struct {
+	Name  string
+	IP    string
+	HTTP2 bool
 }
 
 // GatewaysData struct to hold multiple Gateways for templating.
-type GatewaysData struct {
-	Gateways []Gateway
-	Ports    []Port
+type InternalGatewaysData struct {
+	InternalGateways []InternalGateway
+	Gateways         []Gateway
 }
 
 // Populate the Envoy template with gateway data.
-func populateEnvoyConfig(gateways []Gateway, ports []Port) (string, error) {
+func populateEnvoyConfig(
+	internalGateways []InternalGateway,
+	gateways []Gateway,
+) (string, error) {
 	tmpl, err := template.New("envoyConfig").Parse(envoyTemplate)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse Envoy template: %w", err)
 	}
 
-	gatewaysData := GatewaysData{
-		Gateways: gateways,
-		Ports:    ports,
+	gatewaysData := InternalGatewaysData{
+		InternalGateways: internalGateways,
+		Gateways:         gateways,
 	}
 
 	var populatedConfig bytes.Buffer
@@ -73,8 +91,8 @@ func pollGateways(
 	ctx context.Context,
 	gatewayClientset *gatewayClient.Clientset,
 	requiredGateways map[string]bool,
-) []Gateway {
-	var gatewaysList []Gateway
+) []InternalGateway {
+	var gatewaysList []InternalGateway
 
 	var mutex sync.Mutex
 
@@ -86,7 +104,7 @@ func pollGateways(
 	for name := range requiredGateways {
 		waitGroup.Add(1)
 		// Assign the function to a variable and then invoke it in the go statement
-		checkAndAddGateway := func(name string) {
+		go func(name string) {
 			defer waitGroup.Done()
 
 			for {
@@ -94,7 +112,7 @@ func pollGateways(
 				case <-ctx.Done():
 					return
 				default:
-					if addGatewayIfNeeded(
+					if gatewayAdded(
 						ctx,
 						gatewayClientset,
 						name,
@@ -109,8 +127,7 @@ func pollGateways(
 					time.Sleep(10 * time.Second) //nolint:mnd
 				}
 			}
-		}
-		go checkAndAddGateway(name)
+		}(name)
 	}
 
 	waitGroup.Wait()
@@ -118,13 +135,14 @@ func pollGateways(
 	return gatewaysList
 }
 
-func addGatewayIfNeeded(
+// Add all necessary gateways from requiredGateways.
+func gatewayAdded(
 	ctx context.Context,
 	gatewayClientset *gatewayClient.Clientset,
 	name string,
 	addedGateways map[string]bool,
 	requiredGateways map[string]bool,
-	gatewaysList *[]Gateway,
+	gatewaysList *[]InternalGateway,
 	mutex *sync.Mutex,
 ) bool {
 	gateways, err := gatewayClientset.GatewayV1beta1().
@@ -142,9 +160,12 @@ func addGatewayIfNeeded(
 			len(gateway.Status.Addresses) > 0 &&
 			!addedGateways[gateway.Name] {
 			gatewayIP := gateway.Status.Addresses[0].Value
-			gatewayInfo := Gateway{
-				Name: gateway.Name,
-				IP:   gatewayIP,
+			http2 := gateway.Name == "cache-gateway" ||
+				gateway.Name == "scheduler-gateway"
+			gatewayInfo := InternalGateway{
+				Name:  gateway.Name,
+				IP:    gatewayIP,
+				HTTP2: http2,
 			}
 			*gatewaysList = append(*gatewaysList, gatewayInfo)
 			addedGateways[gateway.Name] = true
@@ -152,10 +173,6 @@ func addGatewayIfNeeded(
 		}
 	}
 
-	return allGatewaysFound(requiredGateways)
-}
-
-func allGatewaysFound(requiredGateways map[string]bool) bool {
 	for _, found := range requiredGateways {
 		if !found {
 			return false
@@ -165,16 +182,25 @@ func allGatewaysFound(requiredGateways map[string]bool) bool {
 	return true
 }
 
-func getHomeDir() (string, error) {
+func buildKubeConfig() (*rest.Config, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", errPulumi, err)
+		return nil, fmt.Errorf(
+			"failed to create loadbalancer container: %w",
+			err,
+		)
 	}
 
-	return home, nil
-}
+	defaultKubeconfig := filepath.Join(home, ".kube", "config")
 
-func buildKubeConfig(kubeconfig *string) (*rest.Config, error) {
+	kubeconfig := flag.String(
+		"kubeconfig",
+		defaultKubeconfig,
+		"path to the kubeconfig file",
+	)
+
+	flag.Parse()
+
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errPulumi, err)
@@ -210,7 +236,7 @@ func writeEnvoyConfigToFile(populatedConfig string) (string, error) {
 	defer tmpFile.Close()
 
 	// Write the populated configuration to the temporary file.
-	if _, err := tmpFile.Write([]byte(populatedConfig)); err != nil {
+	if _, err := tmpFile.WriteString(populatedConfig); err != nil {
 		return "", fmt.Errorf("failed to write to temporary file: %w", err)
 	}
 
@@ -262,24 +288,12 @@ func createDockerContainer(
 	return container, nil
 }
 
-func parseFlags(defaultKubeconfig string) *string {
-	kubeconfig := flag.String(
-		"kubeconfig",
-		defaultKubeconfig,
-		"path to the kubeconfig file",
-	)
-
-	flag.Parse()
-
-	return kubeconfig
-}
-
-func prepareDockerContainerPorts(ports []Port) docker.ContainerPortArray {
+func dockerContainerPorts(gateways []Gateway) docker.ContainerPortArray {
 	var dockerPorts docker.ContainerPortArray
-	for _, port := range ports {
+	for _, gateway := range gateways {
 		dockerPorts = append(dockerPorts, &docker.ContainerPortArgs{
-			Internal: pulumi.Int(port.InternalPort),
-			External: pulumi.Int(port.ExternalPort),
+			Internal: pulumi.Int(gateway.InternalPort),
+			External: pulumi.Int(gateway.ExternalPort),
 		})
 	}
 
@@ -292,15 +306,7 @@ func (component *Loadbalancer) Install(
 	ctx *pulumi.Context,
 	name string,
 ) ([]pulumi.Resource, error) {
-	home, err := getHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	defaultKubeconfig := filepath.Join(home, ".kube", "config")
-	kubeconfig := parseFlags(defaultKubeconfig)
-
-	config, err := buildKubeConfig(kubeconfig)
+	config, err := buildKubeConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -310,38 +316,37 @@ func (component *Loadbalancer) Install(
 		return nil, err
 	}
 
-	requiredGateways := map[string]bool{
-		"scheduler-gateway": false,
-		"cache-gateway":     false,
-		"el-gateway":        false,
-		"hubble-gateway":    false,
-		"tkn-gateway":       false,
-	}
-
-	gatewaysList := pollGateways(
+	populatedConfig, err := populateEnvoyConfig(pollGateways(
 		ctx.Context(),
 		gatewayClientset,
-		requiredGateways,
-	)
-
-	populatedConfig, err := populateEnvoyConfig(gatewaysList, component.Ports)
+		map[string]bool{
+			"scheduler-gateway": false,
+			"cache-gateway":     false,
+			"el-gateway":        false,
+			"hubble-gateway":    false,
+			"tkn-gateway":       false,
+		},
+	), component.Gateways)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf(
+		"Starting Envoy with the following config:\n%s",
+		populatedConfig,
+	)
 
 	absolutePath, err := writeEnvoyConfigToFile(populatedConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	ports := prepareDockerContainerPorts(component.Ports)
-
 	loadbalancer, err := createDockerContainer(
 		ctx,
 		name,
 		"envoyproxy/envoy:v1.19.1",
 		absolutePath,
-		ports,
+		dockerContainerPorts(component.Gateways),
 		component.Dependencies,
 	)
 	if err != nil {

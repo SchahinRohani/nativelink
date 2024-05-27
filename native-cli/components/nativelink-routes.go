@@ -19,7 +19,7 @@ type NativeLinkRoutes struct {
 //go:embed embedded/nativelink-routes.yaml
 var nativeLinkRoutesYaml string
 
-// Install sets up the Gateways for the NativeLink deployment.
+// Install sets up the Routes for the NativeLink deployment.
 //
 // Contrary to the rest of the NativeLink setup, these gateways aren't part of
 // the regular deployment. Recreating the Gateways would change their local IPs

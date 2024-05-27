@@ -121,29 +121,69 @@ func ProgramForLocalCluster(ctx *pulumi.Context) error {
 		os.Exit(1)
 	}
 
-	hubblePort := components.Port{
+	hubbleGateway := components.Gateway{
 		ExternalPort: 8080, //nolint:mnd
 		InternalPort: 80,   //nolint:mnd
+		Routes: []components.RouteConfig{
+			{
+				Prefix: "/",
+				Route: components.Route{
+					Cluster: "hubble-gateway",
+				},
+			},
+		},
 	}
 
-	tknPort := components.Port{
+	tknGateway := components.Gateway{
 		ExternalPort: 8081, //nolint:mnd
 		InternalPort: 8080, //nolint:mnd
+		Routes: []components.RouteConfig{
+			{
+				Prefix: "/",
+				Route: components.Route{
+					Cluster: "tkn-gateway",
+				},
+			},
+		},
 	}
 
-	nativelinkPort := components.Port{
+	nativelinkGateway := components.Gateway{
 		ExternalPort: 8082, //nolint:mnd
 		InternalPort: 8089, //nolint:mnd
+		Routes: []components.RouteConfig{
+			{
+				Prefix: "/eventlistener",
+				Route: components.Route{
+					Cluster: "el-gateway",
+				},
+			},
+			{
+				Prefix: "/cache",
+				Route: components.Route{
+					Cluster:       "cache-gateway",
+					PrefixRewrite: "/",
+				},
+				GRPC: false,
+			},
+			{
+				Prefix: "/scheduler",
+				Route: components.Route{
+					Cluster:       "scheduler-gateway",
+					PrefixRewrite: "/",
+				},
+				GRPC: false,
+			},
+		},
 	}
 
 	components.Check(components.AddComponent(
 		ctx,
 		"kind-loadbalancer",
 		&components.Loadbalancer{
-			Ports: []components.Port{
-				nativelinkPort,
-				hubblePort,
-				tknPort,
+			Gateways: []components.Gateway{
+				nativelinkGateway,
+				hubbleGateway,
+				tknGateway,
 			},
 			Dependencies: slices.Concat(
 				nativeLinkRoutes,
