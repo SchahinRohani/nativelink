@@ -6,11 +6,17 @@ import starlight from "@astrojs/starlight";
 import { rehypeMermaid } from "@beoe/rehype-mermaid"; // "rehype-mermaid";
 import starlightUtils from "@lorenzo_lewis/starlight-utils";
 import { default as playformCompress } from "@playform/compress";
-import tailwindcss from "@tailwindcss/vite";
+import tailwind from '@astrojs/tailwind';
 import { defineConfig } from "astro/config";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import { visualizer } from "rollup-plugin-visualizer";
 import { visit } from "unist-util-visit";
+import qwikdev from '@qwikdev/astro';
+
+// import { imagetools } from 'vite-imagetools'
+// import { astroImageTools } from "astro-imagetools";
+
+
 
 function rehypeLazyLoadMermaid() {
   return (tree) => {
@@ -52,13 +58,18 @@ export default defineConfig({
   },
   vite: {
     plugins: [visualizer()],
-    css: {
-      transformer: "lightningcss",
-      plugins: [tailwindcss()],
-    },
+    // css: {
+    //   transformer: "lightningcss",
+    //   // plugins: [tailwindss()],
+    // },
+    // build: {
+    //   cssMinify: 'lightningcss'
+    // }
   },
   site: "https://nativelink.pages.dev",
   integrations: [
+    qwikdev(),
+    tailwind(),
     partytown(),
     sitemap(),
     starlight({
