@@ -417,10 +417,12 @@
             '';
           in
             [
-              # Development tooling goes here.
+              # Development tooling
+              pkgs.pre-commit
               bazel
               stable-rust-native.default
-              pkgs.pre-commit
+
+              ## Infrastructure Stack
               pkgs.awscli2
               pkgs.skopeo
               pkgs.dive
@@ -437,7 +439,12 @@
               pkgs.pulumiPackages.pulumi-language-go
               pkgs.go
               pkgs.kustomize
-              pkgs.nodePackages.pnpm
+
+              ## Web Stack
+              pkgs.bun
+              pkgs.deno
+              pkgs.lychee
+              pkgs.nodejs_22 # Only for Pagefind.
 
               # Additional tools from within our development environment.
               local-image-test

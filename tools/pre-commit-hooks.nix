@@ -62,6 +62,9 @@ in {
 
       # Testdata for fastcdc.
       "nativelink-util/tests/data/SekienAkashita.jpg"
+
+      # Buns binary lockfile
+      "web/app/bun.lockb"
     ];
     enable = true;
     types = ["binary"];

@@ -1,0 +1,32 @@
+---
+import "../styles/global.css";
+import "../styles/tailwind.css";
+import { ViewTransitions } from "astro:transitions";
+
+import { Footer } from "@components/qwik/components/footer";
+import { Header } from "@components/qwik/components/header";
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<link rel="sitemap" href="/sitemap-index.xml" />
+		<link rel="icon" sizes="192x192" type="image/png" href="https://static.wixstatic.com/media/b37b63_04b2ef1a25334a4fa0b83f6609065563%7Emv2.png/v1/fill/w_192%2Ch_192%2Clg_1%2Cusm_0.66_1.00_0.01/b37b63_04b2ef1a25334a4fa0b83f6609065563%7Emv2.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<meta name="description" content="NativeLink" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+    	<ViewTransitions />
+	</head>
+	<body>
+    <Header pathName={Astro.url.pathname}/>
+		<slot />
+    <Footer />
+	</body>
+</html>

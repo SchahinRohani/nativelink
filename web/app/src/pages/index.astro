@@ -1,0 +1,25 @@
+---
+// import astroLogo from "../assets/astro.svg?url";
+// import qwikLogo from "../assets/qwik.svg?url";
+import Layout from "../layouts/Layout.astro";
+
+import { LandingPage } from "@components/qwik/pages/home";
+
+// import { QFAQ } from "@components/react/faq";
+// import { ReactCounter_test } from "@components/react";
+import { FAQ } from "@components/react/faq";
+import { ReactCounter } from "@components/react/react-counter";
+---
+
+<Layout title="NativeLink">
+  <LandingPage />
+  <!-- <div class="text-black">Test</div> -->
+  <!-- <div class="w-screen h-screen flex justify-center items-center"> -->
+      <!-- <ReactCounter client:load /> -->
+      <!-- <ReactCounter_test client:load /> -->
+  <!-- </div> -->
+    <!-- <div class="w-screen h-screen flex justify-center items-center"> -->
+      <!-- <FAQ client:visible/> -->
+      <!-- <QFAQ client:load /> -->
+    <!-- </div> -->
+</Layout>

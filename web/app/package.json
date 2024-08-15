@@ -1,0 +1,53 @@
+{
+  "name": "nativelink-webapp",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "astro": "astro",
+    "sync": "astro sync",
+    "build": "bun fix && astro build",
+    "docs": "bun run docs.generate && bun run docs.build",
+    "docs.generate": "bun run src/utils/docs.generate.ts",
+    "docs.build": "cd ../.. && unset TMPDIR TMP; bazel build nativelink-config:docs_json && cd web/app && pwd && bun run src/utils/docs.build.ts",
+    "check": "biome ci . && astro check",
+    "check.format": "biome format .",
+    "check.lint": "biome check .",
+    "deploy": "bun run build && deployctl deploy --project=nativelink --no-static --include=./dist ./dist/server/entry.mjs --org=nativelink --save-config",
+    "dev": "astro dev",
+    "fix": "bun lint && bun format && bun sync",
+    "format": "biome format --write .",
+    "lint": "biome check --write --unsafe .",
+    "preview": "bun run build && bun serve",
+    "prod": "bun build && bun deploy",
+    "serve": "deno run --allow-net --allow-read --allow-env ./dist/server/entry.mjs",
+    "start": "astro dev --open"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.5.10",
+    "@astrojs/deno": "5.0.1",
+    "@astrojs/react": "^3.6.2",
+    "@astrojs/sitemap": "^3.1.6",
+    "@astrojs/starlight": "^0.25.5",
+    "@astrojs/tailwind": "^5.1.0",
+    "@builder.io/qwik": "1.5.1",
+    "@builder.io/qwik-react": "^0.5.5",
+    "@qwikdev/astro": "^0.5.13",
+    "@tailwindcss/vite": "^4.0.0-alpha.19",
+    "astro": "^4.5.12",
+    "framer-motion": "^11.3.28",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^4.0.0-alpha.19"
+  },
+  "devDependencies": {
+    "@bazel/bazelisk": "^1.19.0",
+    "@beoe/pan-zoom": "^0.0.3",
+    "@biomejs/biome": "^1.6.3",
+    "@lorenzo_lewis/starlight-utils": "^0.1.2",
+    "@types/bun": "^1.1.6",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "remark": "^15.0.1",
+    "typescript": "^5.4.3"
+  }
+}

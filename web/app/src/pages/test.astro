@@ -1,0 +1,23 @@
+---
+import { ViewTransitions } from "astro:transitions";
+// import { Counter } from "@components/qwik/counter";
+// import { SayHi } from "@components/qwik/say-hi";
+// import { ReactCounter } from "@components/react/react-counter";
+// import { ReactCounter } from "@components/react/components/test";
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Astro</title>
+		<ViewTransitions />
+	</head>
+	<body>
+		<div style={{ height: '1000px' }}>
+			<!-- <ReactCounter client:load /> -->
+		</div>
+	</body>
+</html>
