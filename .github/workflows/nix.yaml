@@ -3,9 +3,7 @@ name: Nix
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: [test/workflow]
 
 permissions: read-all
 
