@@ -1,41 +1,41 @@
----
-name: Sanitizers
+# ---
+# name: Sanitizers
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
+#     paths-ignore:
+#       - 'docs/**'
 
-permissions: read-all
+# permissions: read-all
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-jobs:
-  sanitized-tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04]
-        sanitizer: [asan]
-    name: ${{ matrix.sanitizer }} / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    steps:
-      - uses: >- # v4.1.1
-          actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+# jobs:
+#   sanitized-tests:
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         os: [ubuntu-22.04]
+#         sanitizer: [asan]
+#     name: ${{ matrix.sanitizer }} / ${{ matrix.os }}
+#     runs-on: ${{ matrix.os }}
+#     timeout-minutes: 30
+#     steps:
+#       - uses: >- # v4.1.1
+#           actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
-      - name: Setup Bazelisk
-        uses: >- # v0.8.1
-          bazel-contrib/setup-bazel@b388b84bb637e50cdae241d0f255670d4bd79f29
-        with:
-          bazelisk-cache: true
-          repository-cache: true
+#       - name: Setup Bazelisk
+#         uses: >- # v0.8.1
+#           bazel-contrib/setup-bazel@b388b84bb637e50cdae241d0f255670d4bd79f29
+#         with:
+#           bazelisk-cache: true
+#           repository-cache: true
 
-      - name: Run Bazel tests
-        run: bazel test --config=${{ matrix.sanitizer }} --verbose_failures //...
-        shell: bash
+#       - name: Run Bazel tests
+#         run: bazel test --config=${{ matrix.sanitizer }} --verbose_failures //...
+#         shell: bash

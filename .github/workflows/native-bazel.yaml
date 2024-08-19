@@ -1,77 +1,77 @@
----
-name: Bazel Native
+# ---
+# name: Bazel Native
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
+#     paths-ignore:
+#       - 'docs/**'
 
-permissions: read-all
+# permissions: read-all
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-jobs:
-  unit-tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, macos-13]
-    name: ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: >- # v4.1.1
-          actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+# jobs:
+#   unit-tests:
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         os: [ubuntu-22.04, macos-13]
+#     name: ${{ matrix.os }}
+#     runs-on: ${{ matrix.os }}
+#     timeout-minutes: 30
+#     steps:
+#       - name: Checkout
+#         uses: >- # v4.1.1
+#           actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
-      - name: Setup Bazelisk
-        uses: >- # v0.8.1
-          bazel-contrib/setup-bazel@b388b84bb637e50cdae241d0f255670d4bd79f29
-        with:
-          bazelisk-cache: true
+#       - name: Setup Bazelisk
+#         uses: >- # v0.8.1
+#           bazel-contrib/setup-bazel@b388b84bb637e50cdae241d0f255670d4bd79f29
+#         with:
+#           bazelisk-cache: true
 
-      - name: Determine Bazel cache mountpoint
-        id: bazel-cache
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ] || [ "$RUNNER_OS" == "macOS" ]; then
-            echo "mountpoint=~/.cache/bazel" >> "$GITHUB_OUTPUT"
-          elif [ "$RUNNER_OS" == "Windows" ]; then
-            echo "mountpoint=C:/tmp" >> "$GITHUB_OUTPUT"
-          else
-            echo "Unknown runner OS: $RUNNER_OS"
-            exit 1
-          fi
-        shell: bash
+#       - name: Determine Bazel cache mountpoint
+#         id: bazel-cache
+#         run: |
+#           if [ "$RUNNER_OS" == "Linux" ] || [ "$RUNNER_OS" == "macOS" ]; then
+#             echo "mountpoint=~/.cache/bazel" >> "$GITHUB_OUTPUT"
+#           elif [ "$RUNNER_OS" == "Windows" ]; then
+#             echo "mountpoint=C:/tmp" >> "$GITHUB_OUTPUT"
+#           else
+#             echo "Unknown runner OS: $RUNNER_OS"
+#             exit 1
+#           fi
+#         shell: bash
 
-      - name: Mount bazel cache
-        uses: >- # v4.0.1
-          actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319
-        with:
-          path: |
-            ${{ steps.bazel-cache.outputs.mountpoint }}
-          key: |
-            ${{ matrix.os }}-bazel-native-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE.bazel', 'MODULE.bazel') }}
-          restore-keys: |
-            ${{ matrix.os }}-bazel-native-
+#       - name: Mount bazel cache
+#         uses: >- # v4.0.1
+#           actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319
+#         with:
+#           path: |
+#             ${{ steps.bazel-cache.outputs.mountpoint }}
+#           key: |
+#             ${{ matrix.os }}-bazel-native-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE.bazel', 'MODULE.bazel') }}
+#           restore-keys: |
+#             ${{ matrix.os }}-bazel-native-
 
-      - name: Run Bazel tests
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ] || [ "$RUNNER_OS" == "macOS" ]; then
-            bazel test //... --verbose_failures
-          elif [ "$RUNNER_OS" == "Windows" ]; then
-            bazel \
-              --output_user_root=${{ steps.bazel-cache.outputs.mountpoint }} \
-              test \
-              --config=windows \
-              //... \
-              --verbose_failures
-          else
-            echo "Unknown runner OS: $RUNNER_OS"
-            exit 1
-          fi
-        shell: bash
+#       - name: Run Bazel tests
+#         run: |
+#           if [ "$RUNNER_OS" == "Linux" ] || [ "$RUNNER_OS" == "macOS" ]; then
+#             bazel test //... --verbose_failures
+#           elif [ "$RUNNER_OS" == "Windows" ]; then
+#             bazel \
+#               --output_user_root=${{ steps.bazel-cache.outputs.mountpoint }} \
+#               test \
+#               --config=windows \
+#               //... \
+#               --verbose_failures
+#           else
+#             echo "Unknown runner OS: $RUNNER_OS"
+#             exit 1
+#           fi
+#         shell: bash

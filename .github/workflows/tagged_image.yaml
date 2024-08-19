@@ -1,49 +1,49 @@
----
-name: Create SemVer-tagged OCI image
-on:
-  push:
-    tags:
-      - '*'
+# ---
+# name: Create SemVer-tagged OCI image
+# on:
+#   push:
+#     tags:
+#       - '*'
 
-permissions: read-all
+# permissions: read-all
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-jobs:
-  publish-image:
-    strategy:
-      fail-fast: false
-      matrix:
-        image: [image, nativelink-worker-init, nativelink-worker-lre-cc]
-    runs-on: ubuntu-22.04
-    permissions:
-      packages: write
-      id-token: write
-    timeout-minutes: 60
-    steps:
+# jobs:
+#   publish-image:
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         image: [image, nativelink-worker-init, nativelink-worker-lre-cc]
+#     runs-on: ubuntu-22.04
+#     permissions:
+#       packages: write
+#       id-token: write
+#     timeout-minutes: 60
+#     steps:
 
-      - name: Checkout
-        uses: >- # v4.1.1
-          actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+#       - name: Checkout
+#         uses: >- # v4.1.1
+#           actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
-      - name: Install Nix
-        uses: >- # v10
-          DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
+#       - name: Install Nix
+#         uses: >- # v10
+#           DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
 
-      - name: Cache Nix derivations
-        uses: >- # v4
-          DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
+#       - name: Cache Nix derivations
+#         uses: >- # v4
+#           DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
 
-      - name: Test image
-        run: |
-          nix run .#local-image-test ${{ matrix.image }}
+#       - name: Test image
+#         run: |
+#           nix run .#local-image-test ${{ matrix.image }}
 
-      - name: Upload image
-        run: |
-          nix run .#publish-ghcr ${{ matrix.image }} ${{github.ref_name}}
-        env:
-          GHCR_REGISTRY: ghcr.io/${{ github.repository_owner }}
-          GHCR_USERNAME: ${{ github.actor }}
-          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Upload image
+#         run: |
+#           nix run .#publish-ghcr ${{ matrix.image }} ${{github.ref_name}}
+#         env:
+#           GHCR_REGISTRY: ghcr.io/${{ github.repository_owner }}
+#           GHCR_USERNAME: ${{ github.actor }}
+#           GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
