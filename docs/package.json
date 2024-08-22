@@ -6,7 +6,11 @@
     "sync": "astro sync",
     "astro": "astro",
     "biome": "biome",
+<<<<<<< HEAD
     "docs": "bun run docs.build && bun run docs.generate",
+=======
+    "docs": "bun metaphase && bun transform",
+>>>>>>> bf710fea (Refactor image building inside flake)
     "docs.build": "cd .. && unset TMPDIR TMP; bazelisk build nativelink-config:docs_json && cd docs && bun run src/utils/metaphase_aot.ts",
     "docs.generate": "bun run src/utils/md_to_mdx_aot.ts",
     "build": "bun fix && astro build",
@@ -15,12 +19,18 @@
     "fix": "bun lint && bun format && bun sync",
     "format": "biome format --write .",
     "lint": "biome check --write --unsafe .",
+<<<<<<< HEAD
     "check.lint": "biome check .",
     "preview": "bun run build && bun serve",
     "serve": "deno run --allow-net --allow-read --allow-env ./dist/server/entry.mjs",
     "deploy": "deployctl deploy --include=./dist --entrypoint=./dist/server/entry.mjs --save-config",
     "staging": "bun install && bun docs && bun run build && bun run deploy",
     "prod": "bun install && bun docs && bun run build && bun run deploy --prod"
+=======
+    "preview": "bun run build && bun serve",
+    "serve": "deno run --allow-net --allow-read --allow-env ./dist/server/entry.mjs",
+    "deploy": "deployctl deploy --include=./dist --entrypoint=./dist/server/entry.mjs --save-config"
+>>>>>>> bf710fea (Refactor image building inside flake)
   },
   "dependencies": {
     "@astrojs/check": "^0.7.0",
@@ -34,6 +44,10 @@
     "@deno/astro-adapter": "^0.1.3",
     "@tailwindcss/vite": "^4.0.0-alpha.19",
     "astro": "^4.5.12",
+<<<<<<< HEAD
+=======
+    "playwright": "1.44.1",
+>>>>>>> bf710fea (Refactor image building inside flake)
     "rehype-mermaid": "^2.1.0",
     "tailwindcss": "^4.0.0-alpha.19"
   },
@@ -46,8 +60,11 @@
     "remark": "^15.0.1",
     "typescript": "^5.4.5"
   },
+<<<<<<< HEAD
   "overrides": {
     "playwright-core": "1.44.0"
   },
+=======
+>>>>>>> bf710fea (Refactor image building inside flake)
   "trustedDependencies": ["@biomejs/biome", "esbuild", "sharp"]
 }
