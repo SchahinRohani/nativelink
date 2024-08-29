@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pre-deploy-test
+  namespace: flux-system
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: migration
+        image: ghcr.io/org/my-app:v1.0.0
+        command:
+          - sh
+          - -c
+          - echo "hello world."
