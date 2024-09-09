@@ -1,0 +1,23 @@
+// package main
+
+/*
+#cgo LDFLAGS: ./programs/hello.o
+#include <stdio.h>
+
+// Declare the function pointer type in C
+typedef void (*dummy_function_ptr)();
+
+// Declare the external C functions
+extern void dummy_function();
+extern void call_dummy_function(dummy_function_ptr func);
+*/
+// import "C"
+// import "fmt"
+
+// func main() {
+//     // Call the C function and pass the dummy function pointer
+//     dummyFuncPtr := (C.dummy_function_ptr)(C.dummy_function)
+
+//     C.call_dummy_function(dummyFuncPtr)
+//     fmt.Printf("Hello from golang")
+// }

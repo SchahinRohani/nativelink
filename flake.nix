@@ -458,6 +458,13 @@
               pkgs.go
               pkgs.kustomize
 
+              # Device Detection
+              pkgs.pkg-config # For locating OpenCL libraries
+              pkgs.clinfo
+              pkgs.ocl-icd
+              pkgs.opencl-headers # OpenCL headers for development
+              # pkgs.opencl-clang           # Clang wrapper library with OpenCL API
+
               ## Web
               pkgs.bun # got patched to the newest version (v.1.1.25)
               pkgs.deno
@@ -492,6 +499,12 @@
             export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright-driver.browsers}
             export PLAYWRIGHT_NODEJS_PATH=${pkgs.nodePackages_latest.nodejs}
             export PATH=$HOME/.deno/bin:$PATH
+
+            export OPENCL=${pkgs.opencl-headers}
+            export OCL=${pkgs.ocl-icd}
+            export OPENCL_LIB_DIR=${pkgs.ocl-icd}/lib
+            export OPENCL_INC_DIR=${pkgs.opencl-headers}/include
+            export OPENCL_LINK_LIBRARY=OpenCL
           '';
         };
       };

@@ -130,8 +130,10 @@ func CreateLocalCluster(
 	internalRegistryPort int,
 	externalRegistryPort int,
 ) error {
-	log.Printf("Creating kind cluster.")
+	log.Printf("Detecting Host Resources:")
+	log.Printf("Coming Soon.")
 
+	log.Printf("Creating kind cluster.")
 	kindConfig := CreateLocalKindConfig()
 
 	log.Println("Instantiating Kind Cluster with the following config:")
