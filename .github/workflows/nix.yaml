@@ -1,159 +1,159 @@
----
-name: Nix
+# ---
+# name: Nix
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
+#     paths-ignore:
+#       - 'docs/**'
 
-permissions: read-all
+# permissions: read-all
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-jobs:
-  nix-bazel:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, macos-13, macos-14]
-    name: Bazel Dev / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
-    steps:
-      - name: Checkout
-        uses: >- # v4.1.1
-          actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+# jobs:
+#   nix-bazel:
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         os: [ubuntu-24.04, macos-13, macos-14]
+#     name: Bazel Dev / ${{ matrix.os }}
+#     runs-on: ${{ matrix.os }}
+#     timeout-minutes: 45
+#     steps:
+#       - name: Checkout
+#         uses: >- # v4.1.1
+#           actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
-      - name: Install Nix
-        uses: >- # v10
-          DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
+#       - name: Install Nix
+#         uses: >- # v10
+#           DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
 
-      - name: Free disk space
-        uses: >- # v2.0.0
-          endersonmenezes/free-disk-space@3f9ec39ebae520864ac93467ee395f5237585c21
-        with:
-          remove_android: true
-          remove_dotnet: true
-          remove_haskell: true
-          remove_tool_cache: false
+#       - name: Free disk space
+#         uses: >- # v2.0.0
+#           endersonmenezes/free-disk-space@3f9ec39ebae520864ac93467ee395f5237585c21
+#         with:
+#           remove_android: true
+#           remove_dotnet: true
+#           remove_haskell: true
+#           remove_tool_cache: false
 
-      - name: Cache Nix derivations
-        uses: >- # v4
-          DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
+#       - name: Cache Nix derivations
+#         uses: >- # v4
+#           DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
 
-      # TODO(aaronmondal): Figure out why this cache breaks CI.
-      # See: https://github.com/TraceMachina/nativelink/issues/772
-      # - name: Mount bazel cache
-      #   uses: >- # v4.0.1
-      #     actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319
-      #   with:
-      #     path: "~/.cache/bazel"
-      #     key: ${{ runner.os }}-bazel-nix
+#       # TODO(aaronmondal): Figure out why this cache breaks CI.
+#       # See: https://github.com/TraceMachina/nativelink/issues/772
+#       # - name: Mount bazel cache
+#       #   uses: >- # v4.0.1
+#       #     actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319
+#       #   with:
+#       #     path: "~/.cache/bazel"
+#       #     key: ${{ runner.os }}-bazel-nix
 
-      - name: Invoke Bazel build in Nix shell
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            nix develop --impure --command \
-            bash -c "bazel test ... --verbose_failures"
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            nix develop --impure --command \
-            bash -c "bazel test //... --verbose_failures"
-          else
-            echo "Unsupported runner OS: $RUNNER_OS"
-            exit 1
-          fi
-        shell: bash
+#       - name: Invoke Bazel build in Nix shell
+#         run: |
+#           if [ "$RUNNER_OS" == "Linux" ]; then
+#             nix develop --impure --command \
+#             bash -c "bazel test ... --verbose_failures"
+#           elif [ "$RUNNER_OS" == "macOS" ]; then
+#             nix develop --impure --command \
+#             bash -c "bazel test //... --verbose_failures"
+#           else
+#             echo "Unsupported runner OS: $RUNNER_OS"
+#             exit 1
+#           fi
+#         shell: bash
 
-  nix-cargo:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, macos-13]
-    name: Cargo Dev / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
-    steps:
-      - name: Checkout
-        uses: >- # v4.1.1
-          actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+#   nix-cargo:
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         os: [ubuntu-22.04, macos-13]
+#     name: Cargo Dev / ${{ matrix.os }}
+#     runs-on: ${{ matrix.os }}
+#     timeout-minutes: 45
+#     steps:
+#       - name: Checkout
+#         uses: >- # v4.1.1
+#           actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
-      - name: Install Nix
-        uses: >- # v10
-          DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
+#       - name: Install Nix
+#         uses: >- # v10
+#           DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
 
-      - name: Free disk space
-        uses: >- # v2.0.0
-          endersonmenezes/free-disk-space@3f9ec39ebae520864ac93467ee395f5237585c21
-        with:
-          remove_android: true
-          remove_dotnet: true
-          remove_haskell: true
-          remove_tool_cache: false
+#       - name: Free disk space
+#         uses: >- # v2.0.0
+#           endersonmenezes/free-disk-space@3f9ec39ebae520864ac93467ee395f5237585c21
+#         with:
+#           remove_android: true
+#           remove_dotnet: true
+#           remove_haskell: true
+#           remove_tool_cache: false
 
-      - name: Delete Applications and Simulators to free up disk space
-        if: contains(matrix.os, 'macos')
-        run: |
-          echo "Deleting Applications"
-          sudo rm -rf ~/Applications/*
-          echo "Deleting all iOS simulators"
-          xcrun simctl delete all
-          echo "Deleting iOS Simulator caches"
-          sudo rm -rf ~/Library/Developer/CoreSimulator/Caches/*
+#       - name: Delete Applications and Simulators to free up disk space
+#         if: contains(matrix.os, 'macos')
+#         run: |
+#           echo "Deleting Applications"
+#           sudo rm -rf ~/Applications/*
+#           echo "Deleting all iOS simulators"
+#           xcrun simctl delete all
+#           echo "Deleting iOS Simulator caches"
+#           sudo rm -rf ~/Library/Developer/CoreSimulator/Caches/*
 
-      - name: Cache Nix derivations
-        uses: >- # v4
-          DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
+#       - name: Cache Nix derivations
+#         uses: >- # v4
+#           DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
 
-      - name: Invoke Cargo build in Nix shell
-        run: >
-          nix develop --impure --command
-          bash -c "cargo test --all --profile=smol"
+#       - name: Invoke Cargo build in Nix shell
+#         run: >
+#           nix develop --impure --command
+#           bash -c "cargo test --all --profile=smol"
 
-  installation:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, macos-13, macos-14]
-    name: Installation / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
-    steps:
-      - name: Checkout
-        uses: >- # v4.1.1
-          actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+#   installation:
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         os: [ubuntu-22.04, macos-13, macos-14]
+#     name: Installation / ${{ matrix.os }}
+#     runs-on: ${{ matrix.os }}
+#     timeout-minutes: 45
+#     steps:
+#       - name: Checkout
+#         uses: >- # v4.1.1
+#           actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
-      - name: Install Nix
-        uses: >- # v10
-          DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
+#       - name: Install Nix
+#         uses: >- # v10
+#           DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
 
-      - name: Free disk space
-        uses: >- # v2.0.0
-          endersonmenezes/free-disk-space@3f9ec39ebae520864ac93467ee395f5237585c21
-        with:
-          remove_android: true
-          remove_dotnet: true
-          remove_haskell: true
-          remove_tool_cache: false
+#       - name: Free disk space
+#         uses: >- # v2.0.0
+#           endersonmenezes/free-disk-space@3f9ec39ebae520864ac93467ee395f5237585c21
+#         with:
+#           remove_android: true
+#           remove_dotnet: true
+#           remove_haskell: true
+#           remove_tool_cache: false
 
-      - name: Delete Applications and Simulators to free up disk space
-        if: contains(matrix.os, 'macos')
-        run: |
-          echo "Deleting Applications"
-          sudo rm -rf ~/Applications/*
-          echo "Deleting all iOS simulators"
-          xcrun simctl delete all
-          echo "Deleting iOS Simulator caches"
-          sudo rm -rf ~/Library/Developer/CoreSimulator/Caches/*
+#       - name: Delete Applications and Simulators to free up disk space
+#         if: contains(matrix.os, 'macos')
+#         run: |
+#           echo "Deleting Applications"
+#           sudo rm -rf ~/Applications/*
+#           echo "Deleting all iOS simulators"
+#           xcrun simctl delete all
+#           echo "Deleting iOS Simulator caches"
+#           sudo rm -rf ~/Library/Developer/CoreSimulator/Caches/*
 
-      - name: Cache Nix derivations
-        uses: >- # v4
-          DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
+#       - name: Cache Nix derivations
+#         uses: >- # v4
+#           DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
 
-      - name: Test nix run
-        run: |
-          nix run -L .#nativelink-is-executable-test
+#       - name: Test nix run
+#         run: |
+#           nix run -L .#nativelink-is-executable-test

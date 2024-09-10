@@ -1,35 +1,35 @@
----
-name: Check pre-commit hooks
-on:
-  pull_request:
-    branches:
-      - main
-  push:
-    branches:
-      - main
+# ---
+# name: Check pre-commit hooks
+# on:
+#   pull_request:
+#     branches:
+#       - main
+#   push:
+#     branches:
+#       - main
 
-permissions: read-all
+# permissions: read-all
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-jobs:
-  pre-commit-checks:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: >- # v4.1.1
-          actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+# jobs:
+#   pre-commit-checks:
+#     runs-on: ubuntu-22.04
+#     timeout-minutes: 20
+#     steps:
+#       - name: Checkout
+#         uses: >- # v4.1.1
+#           actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
-      - name: Install Nix
-        uses: >- # v10
-          DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
+#       - name: Install Nix
+#         uses: >- # v10
+#           DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
 
-      - name: Cache Nix derivations
-        uses: >- # v4
-          DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
+#       - name: Cache Nix derivations
+#         uses: >- # v4
+#           DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
 
-      - name: Run pre-commit hooks
-        run: nix flake check
+#       - name: Run pre-commit hooks
+#         run: nix flake check

@@ -1,0 +1,69 @@
+---
+name: Test NativeLink Images
+on:
+  push:
+    branches: [test/bridge-image]
+
+permissions: read-all
+
+jobs:
+  deploy:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-24.04, macos-14 ]
+
+    name: Web Platform Deployment / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: >- # v4.1.1
+          actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+
+      - name: Free disk space
+        uses: >- # v2.0.0
+          endersonmenezes/free-disk-space@3f9ec39ebae520864ac93467ee395f5237585c21
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          remove_tool_cache: false
+
+      - name: Delete Applications and Simulators to free up disk space
+        if: contains(matrix.os, 'macos')
+        run: |
+          echo "Deleting Applications"
+          sudo rm -rf ~/Applications/*
+          echo "Deleting all iOS simulators"
+          xcrun simctl delete all
+          echo "Deleting iOS Simulator caches"
+          sudo rm -rf ~/Library/Developer/CoreSimulator/Caches/*
+
+      - name: Install Nix
+        uses: >- # v10
+          DeterminateSystems/nix-installer-action@de22e16c4711fca50c816cc9081563429d1cf563
+
+      - name: Cache Nix derivations
+        uses: >- # v4
+          DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41
+
+      - name: Install Docker (Ubuntu)
+        if: matrix.os == 'ubuntu-24.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo usermod -aG docker $USER
+          docker --version
+
+      - name: Test Image Build
+        run: |
+          nix run .#webBridge.copyToDockerDaemon
+
+      - name: Run WebBridge Docker Image
+        if: matrix.os == 'ubuntu-24.04'
+        run: |
+          echo "Running nativelink-web-bridge image"
+          docker run -d --name nativelink-web-bridge -p 8080:8080 nativelink-web-bridge

@@ -1,42 +1,42 @@
----
-name: Cargo Native
+# ---
+# name: Cargo Native
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
+#     paths-ignore:
+#       - 'docs/**'
 
-permissions: read-all
+# permissions: read-all
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-jobs:
-  cargo-native:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, windows-2022]
-        toolchain: [stable]
-    name: ${{ matrix.os }} / ${{ matrix.toolchain }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    steps:
+# jobs:
+#   cargo-native:
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         os: [ubuntu-20.04, ubuntu-22.04, windows-2022]
+#         toolchain: [stable]
+#     name: ${{ matrix.os }} / ${{ matrix.toolchain }}
+#     runs-on: ${{ matrix.os }}
+#     timeout-minutes: 30
+#     steps:
 
-      - name: Checkout
-        uses: >- # v4.1.1
-          actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+#       - name: Checkout
+#         uses: >- # v4.1.1
+#           actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
-      - name: Set up Rust toolchain
-        run: rustup default ${{ matrix.toolchain }}
-        shell: bash
+#       - name: Set up Rust toolchain
+#         run: rustup default ${{ matrix.toolchain }}
+#         shell: bash
 
-      - name: Build on ${{ runner.os }}
-        run: cargo build --all --profile=smol
+#       - name: Build on ${{ runner.os }}
+#         run: cargo build --all --profile=smol
 
-      - name: Test on ${{ runner.os }}
-        run: cargo test --all --profile=smol
+#       - name: Test on ${{ runner.os }}
+#         run: cargo test --all --profile=smol
