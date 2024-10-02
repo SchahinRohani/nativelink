@@ -27,7 +27,7 @@ use nativelink_util::metrics_utils::{CounterWithTime, FuncCounterWrapper};
 use nativelink_util::platform_properties::{PlatformProperties, PlatformPropertyValue};
 use tokio::sync::mpsc::UnboundedSender;
 
-pub type WorkerTimestamp = u64;
+pub type Timestamp = u64;
 
 /// Represents the action info and the platform properties of the action.
 /// These platform properties have the type of the properties as well as
@@ -44,7 +44,7 @@ pub struct ActionInfoWithProps {
 }
 
 /// Notifications to send worker about a requested state change.
-pub enum WorkerUpdate {
+pub enum Update {
     /// Requests that the worker begin executing this action.
     RunAction((OperationId, ActionInfoWithProps)),
 
@@ -75,7 +75,7 @@ pub struct Worker {
     // Warning: Do not update this timestamp without updating the placement of the worker in
     // the LRUCache in the Workers struct.
     #[metric(help = "Last time this worker was communicated with.")]
-    pub last_update_timestamp: WorkerTimestamp,
+    pub last_update_timestamp: Timestamp,
 
     /// Whether the worker rejected the last action due to back pressure.
     #[metric(help = "If the worker is paused.")]
@@ -123,7 +123,7 @@ impl Worker {
         id: WorkerId,
         platform_properties: PlatformProperties,
         tx: UnboundedSender<UpdateForWorker>,
-        timestamp: WorkerTimestamp,
+        timestamp: Timestamp,
     ) -> Self {
         Self {
             id,
@@ -159,12 +159,12 @@ impl Worker {
     }
 
     /// Notifies the worker of a requested state change.
-    pub fn notify_update(&mut self, worker_update: WorkerUpdate) -> Result<(), Error> {
+    pub fn notify_update(&mut self, worker_update: Update) -> Result<(), Error> {
         match worker_update {
-            WorkerUpdate::RunAction((operation_id, action_info)) => {
+            Update::RunAction((operation_id, action_info)) => {
                 self.run_action(operation_id, action_info)
             }
-            WorkerUpdate::Disconnect => {
+            Update::Disconnect => {
                 self.metrics.notify_disconnect.inc();
                 send_msg_to_worker(&mut self.tx, update_for_worker::Update::Disconnect(()))
             }

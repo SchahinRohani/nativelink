@@ -52,7 +52,7 @@ use nativelink_util::buf_channel::{
 use nativelink_util::fs;
 use nativelink_util::health_utils::{HealthStatus, HealthStatusIndicator};
 use nativelink_util::instant_wrapper::InstantWrapper;
-use nativelink_util::retry::{Retrier, RetryResult};
+use nativelink_util::retry::{Attempt, Retrier};
 use nativelink_util::store_trait::{StoreDriver, StoreKey, UploadSizeInfo};
 use rand::rngs::OsRng;
 use rand::Rng;
@@ -177,14 +177,14 @@ impl TlsConnector {
             let _permit = fs::get_permit().await.unwrap();
             match connector.call(req.clone()).await {
                 Ok(connection) => Some((
-                    RetryResult::Ok(ConnectionWithPermit {
+                    Attempt::Ok(ConnectionWithPermit {
                         connection,
                         _permit,
                     }),
                     connector,
                 )),
                 Err(e) => Some((
-                    RetryResult::Retry(make_err!(
+                    Attempt::Retry(make_err!(
                         Code::Unavailable,
                         "Failed to call S3 connector: {e:?}"
                     )),
@@ -345,18 +345,18 @@ where
                             if let Some(last_modified) = head_object_output.last_modified {
                                 let now_s = (self.now_fn)().unix_timestamp() as i64;
                                 if last_modified.secs() + self.consider_expired_after_s <= now_s {
-                                    return Some((RetryResult::Ok(None), state));
+                                    return Some((Attempt::Ok(None), state));
                                 }
                             }
                         }
                         let Some(length) = head_object_output.content_length else {
-                            return Some((RetryResult::Ok(None), state));
+                            return Some((Attempt::Ok(None), state));
                         };
                         if length >= 0 {
-                            return Some((RetryResult::Ok(Some(length as u64)), state));
+                            return Some((Attempt::Ok(Some(length as u64)), state));
                         }
                         Some((
-                            RetryResult::Err(make_err!(
+                            Attempt::Err(make_err!(
                                 Code::InvalidArgument,
                                 "Negative content length in S3: {length:?}",
                             )),
@@ -364,9 +364,9 @@ where
                         ))
                     }
                     Err(sdk_error) => match sdk_error.into_service_error() {
-                        HeadObjectError::NotFound(_) => Some((RetryResult::Ok(None), state)),
+                        HeadObjectError::NotFound(_) => Some((Attempt::Ok(None), state)),
                         other => Some((
-                            RetryResult::Retry(make_err!(
+                            Attempt::Retry(make_err!(
                                 Code::Unavailable,
                                 "Unhandled HeadObjectError in S3: {other:?}"
                             )),
@@ -476,7 +476,7 @@ where
                                 err = ?try_reset_err,
                                 "Unable to reset stream after failed upload in S3Store::update"
                             );
-                            return RetryResult::Err(err
+                            return Attempt::Err(err
                                 .merge(try_reset_err)
                                 .append(format!("Failed to retry upload with {bytes_received} bytes received in S3Store::update")));
                         }
@@ -487,8 +487,8 @@ where
                             ?bytes_received,
                             "Retryable S3 error"
                         );
-                        RetryResult::Retry(err)
-                    }, |()| RetryResult::Ok(()));
+                        Attempt::Retry(err)
+                    }, |()| Attempt::Ok(()));
                     Some((retry_result, reader))
                 }))
                 .await;
@@ -506,7 +506,7 @@ where
                     .await
                     .map_or_else(
                         |e| {
-                            RetryResult::Retry(make_err!(
+                            Attempt::Retry(make_err!(
                                 Code::Aborted,
                                 "Failed to create multipart upload to s3: {e:?}"
                             ))
@@ -514,12 +514,12 @@ where
                         |CreateMultipartUploadOutput { upload_id, .. }| {
                             upload_id.map_or_else(
                                 || {
-                                    RetryResult::Err(make_err!(
+                                    Attempt::Err(make_err!(
                                         Code::Internal,
                                         "Expected upload_id to be set by s3 response"
                                     ))
                                 },
-                                RetryResult::Ok,
+                                Attempt::Ok,
                             )
                         },
                     );
@@ -565,13 +565,13 @@ where
                                     .await
                                     .map_or_else(
                                         |e| {
-                                            RetryResult::Retry(make_err!(
+                                            Attempt::Retry(make_err!(
                                                 Code::Aborted,
                                                 "Failed to upload part {part_number} in S3 store: {e:?}"
                                             ))
                                         },
                                         |mut response| {
-                                            RetryResult::Ok(
+                                            Attempt::Ok(
                                                 CompletedPartBuilder::default()
                                                     // Only set an entity tag if it exists. This saves
                                                     // 13 bytes per part on the final request if it can
@@ -632,12 +632,12 @@ where
                             .await
                             .map_or_else(
                                 |e| {
-                                    RetryResult::Retry(make_err!(
+                                    Attempt::Retry(make_err!(
                                         Code::Aborted,
                                         "Failed to complete multipart upload in S3 store: {e:?}"
                                     ))
                                 },
-                                |_| RetryResult::Ok(()),
+                                |_| Attempt::Ok(()),
                             ),
                         completed_parts,
                     ))
@@ -712,16 +712,13 @@ where
                     Err(sdk_error) => match sdk_error.into_service_error() {
                         GetObjectError::NoSuchKey(e) => {
                             return Some((
-                                RetryResult::Err(make_err!(
-                                    Code::NotFound,
-                                    "No such key in S3: {e}"
-                                )),
+                                Attempt::Err(make_err!(Code::NotFound, "No such key in S3: {e}")),
                                 writer,
                             ));
                         }
                         other => {
                             return Some((
-                                RetryResult::Retry(make_err!(
+                                Attempt::Retry(make_err!(
                                     Code::Unavailable,
                                     "Unhandled GetObjectError in S3: {other:?}",
                                 )),
@@ -742,7 +739,7 @@ where
                             }
                             if let Err(e) = writer.send(bytes).await {
                                 return Some((
-                                    RetryResult::Err(make_err!(
+                                    Attempt::Err(make_err!(
                                         Code::Aborted,
                                         "Error sending bytes to consumer in S3: {e}"
                                     )),
@@ -752,7 +749,7 @@ where
                         }
                         Err(e) => {
                             return Some((
-                                RetryResult::Retry(make_err!(
+                                Attempt::Retry(make_err!(
                                     Code::Aborted,
                                     "Bad bytestream element in S3: {e}"
                                 )),
@@ -763,14 +760,14 @@ where
                 }
                 if let Err(e) = writer.send_eof() {
                     return Some((
-                        RetryResult::Err(make_err!(
+                        Attempt::Err(make_err!(
                             Code::Aborted,
                             "Failed to send EOF to consumer in S3: {e}"
                         )),
                         writer,
                     ));
                 }
-                Some((RetryResult::Ok(()), writer))
+                Some((Attempt::Ok(()), writer))
             }))
             .await
     }

@@ -45,7 +45,7 @@ type SleepFn = Arc<dyn Fn(Duration) -> Pin<Box<dyn Future<Output = ()> + Send>> 
 pub(crate) type JitterFn = Arc<dyn Fn(Duration) -> Duration + Send + Sync>;
 
 #[derive(PartialEq, Eq, Debug)]
-pub enum RetryResult<T> {
+pub enum Attempt<T> {
     Ok(T),
     Retry(Error),
     Err(Error),
@@ -135,7 +135,7 @@ impl Retrier {
     #[allow(clippy::manual_async_fn)]
     pub fn retry<'a, T: Send>(
         &'a self,
-        operation: impl futures::stream::Stream<Item = RetryResult<T>> + Send + 'a,
+        operation: impl futures::stream::Stream<Item = Attempt<T>> + Send + 'a,
     ) -> impl Future<Output = Result<T, Error>> + Send + 'a {
         async move {
             let mut iter = self.get_retry_config();
@@ -150,11 +150,11 @@ impl Retrier {
                             "Retry stream ended abruptly on attempt {attempt}",
                         ))
                     }
-                    Some(RetryResult::Ok(value)) => return Ok(value),
-                    Some(RetryResult::Err(e)) => {
+                    Some(Attempt::Ok(value)) => return Ok(value),
+                    Some(Attempt::Err(e)) => {
                         return Err(e.append(format!("On attempt {attempt}")));
                     }
-                    Some(RetryResult::Retry(err)) => {
+                    Some(Attempt::Retry(err)) => {
                         if !self.should_retry(&err.code) {
                             event!(Level::ERROR, ?attempt, ?err, "Not retrying permanent error");
                             return Err(err);

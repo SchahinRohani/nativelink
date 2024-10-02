@@ -27,7 +27,7 @@ use tonic::transport::{channel, Channel, Endpoint};
 use tracing::{event, Level};
 
 use crate::background_spawn;
-use crate::retry::{self, Retrier, RetryResult};
+use crate::retry::{self, Attempt, Retrier};
 
 /// A helper utility that enables management of a suite of connections to an
 /// upstream gRPC endpoint using Tonic.
@@ -284,10 +284,7 @@ impl ConnectionManagerWorker {
                     endpoint.uri()
                 )
             });
-            Some((
-                result.map_or_else(RetryResult::Retry, RetryResult::Ok),
-                endpoint,
-            ))
+            Some((result.map_or_else(Attempt::Retry, Attempt::Ok), endpoint))
         });
         let retrier = self.retrier.clone();
         self.connecting_channels.push(Box::pin(async move {

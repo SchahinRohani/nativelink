@@ -58,7 +58,7 @@ use nativelink_util::store_trait::{
 };
 use nativelink_util::task::TaskExecutor;
 use nativelink_util::{background_spawn, init_tracing, spawn, spawn_blocking};
-use nativelink_worker::local_worker::new_local_worker;
+use nativelink_worker::local_worker::new;
 use opentelemetry::metrics::MeterProvider;
 use opentelemetry_sdk::metrics::SdkMeterProvider;
 use parking_lot::{Mutex, RwLock};
@@ -908,7 +908,7 @@ async fn inner_main(
                     } else {
                         fast_slow_store.clone()
                     };
-                    let (local_worker, metrics) = new_local_worker(
+                    let (local_worker, metrics) = new(
                         Arc::new(local_worker_cfg),
                         fast_slow_store,
                         maybe_ac_store,

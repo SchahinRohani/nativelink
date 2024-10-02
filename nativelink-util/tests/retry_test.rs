@@ -21,7 +21,7 @@ use futures::stream::repeat_with;
 use nativelink_config::stores::Retry;
 use nativelink_error::{make_err, Code, Error};
 use nativelink_macro::nativelink_test;
-use nativelink_util::retry::{Retrier, RetryResult};
+use nativelink_util::retry::{Attempt, Retrier};
 use pretty_assertions::assert_eq;
 use tokio::time::Duration;
 
@@ -40,7 +40,7 @@ async fn retry_simple_success() -> Result<(), Error> {
     let result = Pin::new(&retrier)
         .retry(repeat_with(|| {
             run_count.fetch_add(1, Ordering::Relaxed);
-            RetryResult::Ok(true)
+            Attempt::Ok(true)
         }))
         .await?;
     assert_eq!(
@@ -67,7 +67,7 @@ async fn retry_fails_after_3_runs() -> Result<(), Error> {
     let result = Pin::new(&retrier)
         .retry(repeat_with(|| {
             run_count.fetch_add(1, Ordering::Relaxed);
-            RetryResult::<bool>::Retry(make_err!(Code::Unavailable, "Dummy failure",))
+            Attempt::<bool>::Retry(make_err!(Code::Unavailable, "Dummy failure",))
         }))
         .await;
     assert_eq!(
@@ -100,9 +100,9 @@ async fn retry_success_after_2_runs() -> Result<(), Error> {
         .retry(repeat_with(|| {
             run_count.fetch_add(1, Ordering::Relaxed);
             if run_count.load(Ordering::Relaxed) == 2 {
-                return RetryResult::Ok(true);
+                return Attempt::Ok(true);
             }
-            RetryResult::<bool>::Retry(make_err!(Code::Unavailable, "Dummy failure",))
+            Attempt::<bool>::Retry(make_err!(Code::Unavailable, "Dummy failure",))
         }))
         .await?;
     assert_eq!(
@@ -141,7 +141,7 @@ async fn retry_calls_sleep_fn() -> Result<(), Error> {
         // Try with retry limit hit.
         let result = Pin::new(&retrier)
             .retry(repeat_with(|| {
-                RetryResult::<bool>::Retry(make_err!(Code::Unavailable, "Dummy failure",))
+                Attempt::<bool>::Retry(make_err!(Code::Unavailable, "Dummy failure",))
             }))
             .await;
 
@@ -162,9 +162,9 @@ async fn retry_calls_sleep_fn() -> Result<(), Error> {
                 // Remember: This function is only called every time, not just retries.
                 // We run the first time, then retry 2 additional times meaning 3 runs.
                 if run_count.load(Ordering::Relaxed) == 3 {
-                    return RetryResult::Ok(true);
+                    return Attempt::Ok(true);
                 }
-                RetryResult::<bool>::Retry(make_err!(Code::Unavailable, "Dummy failure",))
+                Attempt::<bool>::Retry(make_err!(Code::Unavailable, "Dummy failure",))
             }))
             .await?;
 

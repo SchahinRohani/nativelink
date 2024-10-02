@@ -60,7 +60,7 @@ pub struct AwaitedAction {
 
     /// The currentsort key used to order the actions.
     #[metric(help = "The sort key of the AwaitedAction")]
-    sort_key: AwaitedActionSortKey,
+    sort_key: SortKey,
 
     /// The time the action was last updated.
     #[metric(help = "The last time the worker updated the AwaitedAction")]
@@ -82,10 +82,8 @@ pub struct AwaitedAction {
 impl AwaitedAction {
     pub fn new(operation_id: OperationId, action_info: Arc<ActionInfo>, now: SystemTime) -> Self {
         let stage = ActionStage::Queued;
-        let sort_key = AwaitedActionSortKey::new_with_unique_key(
-            action_info.priority,
-            &action_info.insert_timestamp,
-        );
+        let sort_key =
+            SortKey::new_with_unique_key(action_info.priority, &action_info.insert_timestamp);
         let state = Arc::new(ActionState {
             stage,
             // Note: We don't use the real client_operation_id here because
@@ -128,7 +126,7 @@ impl AwaitedAction {
         &self.operation_id
     }
 
-    pub(crate) fn sort_key(&self) -> AwaitedActionSortKey {
+    pub(crate) fn sort_key(&self) -> SortKey {
         self.sort_key
     }
 
@@ -183,9 +181,9 @@ impl TryFrom<&[u8]> for AwaitedAction {
 /// 3. (mostly random hash based on the action info)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[repr(transparent)]
-pub struct AwaitedActionSortKey(u64);
+pub struct SortKey(u64);
 
-impl MetricsComponent for AwaitedActionSortKey {
+impl MetricsComponent for SortKey {
     fn publish(
         &self,
         _kind: MetricKind,
@@ -195,7 +193,7 @@ impl MetricsComponent for AwaitedActionSortKey {
     }
 }
 
-impl AwaitedActionSortKey {
+impl SortKey {
     #[rustfmt::skip]
     const fn new(priority: i32, insert_timestamp: u32) -> Self {
         // Shift `new_priority` so [`i32::MIN`] is represented by zero.
@@ -208,7 +206,7 @@ impl AwaitedActionSortKey {
         // This makes timestamp descending order instead of ascending.
         let timestamp = (insert_timestamp ^ u32::MAX).to_be_bytes();
 
-        AwaitedActionSortKey(u64::from_be_bytes([
+        SortKey(u64::from_be_bytes([
             priority[0], priority[1], priority[2], priority[3],
             timestamp[0], timestamp[1], timestamp[2], timestamp[3],
         ]))
@@ -228,28 +226,23 @@ impl AwaitedActionSortKey {
 }
 
 // Ensure the size of the sort key is the same as a `u64`.
-assert_eq_size!(AwaitedActionSortKey, u64);
+assert_eq_size!(SortKey, u64);
 
 const_assert_eq!(
-    AwaitedActionSortKey::new(0x1234_5678, 0x9abc_def0).0,
+    SortKey::new(0x1234_5678, 0x9abc_def0).0,
     // Note: Result has 0x12345678 + 0x80000000 = 0x92345678 because we need
     // to shift the `i32::MIN` value to be represented by zero.
     // Note: `6543210f` are the inverted bits of `9abcdef0`.
     // This effectively inverts the priority to now have the highest priority
     // be the lowest timestamps.
-    AwaitedActionSortKey(0x9234_5678_6543_210f).0
+    SortKey(0x9234_5678_6543_210f).0
 );
 // Ensure the priority is used as the sort key first.
-const_assert!(
-    AwaitedActionSortKey::new(i32::MAX, 0).0 > AwaitedActionSortKey::new(i32::MAX - 1, 0).0
-);
-const_assert!(AwaitedActionSortKey::new(i32::MAX - 1, 0).0 > AwaitedActionSortKey::new(1, 0).0);
-const_assert!(AwaitedActionSortKey::new(1, 0).0 > AwaitedActionSortKey::new(0, 0).0);
-const_assert!(AwaitedActionSortKey::new(0, 0).0 > AwaitedActionSortKey::new(-1, 0).0);
-const_assert!(AwaitedActionSortKey::new(-1, 0).0 > AwaitedActionSortKey::new(i32::MIN + 1, 0).0);
-const_assert!(
-    AwaitedActionSortKey::new(i32::MIN + 1, 0).0 > AwaitedActionSortKey::new(i32::MIN, 0).0
-);
-
+const_assert!(SortKey::new(i32::MAX, 0).0 > SortKey::new(i32::MAX - 1, 0).0);
+const_assert!(SortKey::new(i32::MAX - 1, 0).0 > SortKey::new(1, 0).0);
+const_assert!(SortKey::new(1, 0).0 > SortKey::new(0, 0).0);
+const_assert!(SortKey::new(0, 0).0 > SortKey::new(-1, 0).0);
+const_assert!(SortKey::new(-1, 0).0 > SortKey::new(i32::MIN + 1, 0).0);
+const_assert!(SortKey::new(i32::MIN + 1, 0).0 > SortKey::new(i32::MIN, 0).0);
 // Ensure the insert timestamp is used as the sort key second.
-const_assert!(AwaitedActionSortKey::new(0, u32::MIN).0 > AwaitedActionSortKey::new(0, u32::MAX).0);
+const_assert!(SortKey::new(0, u32::MIN).0 > SortKey::new(0, u32::MAX).0);

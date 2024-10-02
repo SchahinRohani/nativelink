@@ -34,7 +34,7 @@ use tonic::async_trait;
 use tracing::{event, Level};
 
 use crate::platform_property_manager::PlatformPropertyManager;
-use crate::worker::{ActionInfoWithProps, Worker, WorkerTimestamp, WorkerUpdate};
+use crate::worker::{ActionInfoWithProps, Timestamp, Update, Worker};
 use crate::worker_scheduler::WorkerScheduler;
 
 struct Workers(LruCache<WorkerId, Worker>);
@@ -93,7 +93,7 @@ impl ApiWorkerSchedulerImpl {
     fn refresh_lifetime(
         &mut self,
         worker_id: &WorkerId,
-        timestamp: WorkerTimestamp,
+        timestamp: Timestamp,
     ) -> Result<(), Error> {
         let worker = self.workers.0.peek_mut(worker_id).ok_or_else(|| {
             make_input_err!(
@@ -274,7 +274,7 @@ impl ApiWorkerSchedulerImpl {
     ) -> Result<(), Error> {
         if let Some(worker) = self.workers.get_mut(&worker_id) {
             let notify_worker_result =
-                worker.notify_update(WorkerUpdate::RunAction((operation_id, action_info.clone())));
+                worker.notify_update(Update::RunAction((operation_id, action_info.clone())));
 
             if notify_worker_result.is_err() {
                 event!(
@@ -314,7 +314,7 @@ impl ApiWorkerSchedulerImpl {
         let mut result = Ok(());
         if let Some(mut worker) = self.remove_worker(worker_id) {
             // We don't care if we fail to send message to worker, this is only a best attempt.
-            let _ = worker.notify_update(WorkerUpdate::Disconnect);
+            let _ = worker.notify_update(Update::Disconnect);
             for (operation_id, _) in worker.running_action_infos.drain() {
                 result = result.merge(
                     self.worker_state_manager
@@ -474,7 +474,7 @@ impl WorkerScheduler for ApiWorkerScheduler {
     async fn worker_keep_alive_received(
         &self,
         worker_id: &WorkerId,
-        timestamp: WorkerTimestamp,
+        timestamp: Timestamp,
     ) -> Result<(), Error> {
         let mut inner = self.inner.lock().await;
         inner
@@ -492,7 +492,7 @@ impl WorkerScheduler for ApiWorkerScheduler {
             .await
     }
 
-    async fn remove_timedout_workers(&self, now_timestamp: WorkerTimestamp) -> Result<(), Error> {
+    async fn remove_timedout_workers(&self, now_timestamp: Timestamp) -> Result<(), Error> {
         let mut inner = self.inner.lock().await;
 
         let mut result = Ok(());

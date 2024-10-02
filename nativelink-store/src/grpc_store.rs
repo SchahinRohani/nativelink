@@ -45,7 +45,7 @@ use nativelink_util::proto_stream_utils::{
     FirstStream, WriteRequestStreamWrapper, WriteState, WriteStateWrapper,
 };
 use nativelink_util::resource_info::ResourceInfo;
-use nativelink_util::retry::{Retrier, RetryResult};
+use nativelink_util::retry::{Attempt, Retrier};
 use nativelink_util::store_trait::{StoreDriver, StoreKey, UploadSizeInfo};
 use nativelink_util::{default_health_status_indicator, tls_utils};
 use parking_lot::Mutex;
@@ -133,7 +133,7 @@ impl GrpcStore {
                 Some((
                     request(input_clone)
                         .await
-                        .map_or_else(RetryResult::Retry, RetryResult::Ok),
+                        .map_or_else(Attempt::Retry, Attempt::Ok),
                     input,
                 ))
             }))
@@ -330,19 +330,19 @@ impl GrpcStore {
 
                 let result = if let Some(err) = local_state_locked.take_read_stream_error() {
                     // If there was an error with the stream, then don't retry.
-                    RetryResult::Err(err.append("Where read_stream_error was set"))
+                    Attempt::Err(err.append("Where read_stream_error was set"))
                 } else {
                     // On error determine whether it is possible to retry.
                     match result {
                         Err(err) => {
                             if local_state_locked.can_resume() {
                                 local_state_locked.resume();
-                                RetryResult::Retry(err)
+                                Attempt::Retry(err)
                             } else {
-                                RetryResult::Err(err.append("Retry is not possible"))
+                                Attempt::Err(err.append("Retry is not possible"))
                             }
                         }
-                        Ok(response) => RetryResult::Ok(response),
+                        Ok(response) => Attempt::Ok(response),
                     }
                 };
 
@@ -710,7 +710,7 @@ impl StoreDriver for GrpcStore {
                     .err_tip(|| "in GrpcStore::get_part()")
                 {
                     Ok(stream) => stream,
-                    Err(err) => return Some((RetryResult::Retry(err), local_state)),
+                    Err(err) => return Some((Attempt::Retry(err), local_state)),
                 };
 
                 loop {
@@ -720,7 +720,7 @@ impl StoreDriver for GrpcStore {
                         Some(Ok(message)) => message.data,
                         Some(Err(status)) => {
                             return Some((
-                                RetryResult::Retry(
+                                Attempt::Retry(
                                     Into::<Error>::into(status)
                                         .append("While fetching message in GrpcStore::get_part()"),
                                 ),
@@ -735,7 +735,7 @@ impl StoreDriver for GrpcStore {
                             .writer
                             .send_eof()
                             .err_tip(|| "Could not send eof in GrpcStore::get_part()")
-                            .map_or_else(RetryResult::Err, RetryResult::Ok);
+                            .map_or_else(Attempt::Err, Attempt::Ok);
                         return Some((eof_result, local_state));
                     }
                     // Forward the data upstream.
@@ -745,7 +745,7 @@ impl StoreDriver for GrpcStore {
                         .await
                         .err_tip(|| "While sending in GrpcStore::get_part()")
                     {
-                        return Some((RetryResult::Err(err), local_state));
+                        return Some((Attempt::Err(err), local_state));
                     }
                     local_state.read_offset += length;
                 }

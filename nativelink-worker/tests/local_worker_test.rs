@@ -49,7 +49,7 @@ use nativelink_util::action_messages::{
 use nativelink_util::common::{encode_stream_proto, fs, DigestInfo};
 use nativelink_util::digest_hasher::DigestHasherFunc;
 use nativelink_util::store_trait::Store;
-use nativelink_worker::local_worker::new_local_worker;
+use nativelink_worker::local_worker::new;
 use pretty_assertions::assert_eq;
 use prost::Message;
 use rand::{thread_rng, Rng};
@@ -430,7 +430,7 @@ async fn new_local_worker_creates_work_directory_test() -> Result<(), Box<dyn st
         &nativelink_config::stores::MemoryStore::default(),
     ));
     let work_directory = make_temp_path("foo");
-    new_local_worker(
+    new(
         Arc::new(LocalWorkerConfig {
             work_directory: work_directory.clone(),
             ..Default::default()
@@ -484,7 +484,7 @@ async fn new_local_worker_removes_work_directory_before_start_test(
     file.as_writer().await?.write_all(b"Hello, world!").await?;
     file.as_writer().await?.as_mut().sync_all().await?;
     drop(file);
-    new_local_worker(
+    new(
         Arc::new(LocalWorkerConfig {
             work_directory: work_directory.clone(),
             ..Default::default()

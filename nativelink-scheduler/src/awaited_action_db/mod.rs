@@ -16,7 +16,7 @@ use std::cmp;
 use std::ops::Bound;
 use std::sync::Arc;
 
-pub use awaited_action::{AwaitedAction, AwaitedActionSortKey};
+pub use awaited_action::{AwaitedAction, SortKey};
 use futures::{Future, Stream};
 use nativelink_error::{make_input_err, Error, ResultExt};
 use nativelink_metric::MetricsComponent;
@@ -58,7 +58,7 @@ impl TryFrom<ActionStage> for SortedAwaitedActionState {
 #[derive(Debug, Clone, Serialize, Deserialize, MetricsComponent)]
 pub struct SortedAwaitedAction {
     #[metric(help = "The sort key of the AwaitedAction")]
-    pub sort_key: AwaitedActionSortKey,
+    pub sort_key: SortKey,
     #[metric(help = "The operation id")]
     pub operation_id: OperationId,
 }

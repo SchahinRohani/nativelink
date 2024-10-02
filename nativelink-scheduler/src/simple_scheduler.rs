@@ -37,7 +37,7 @@ use crate::api_worker_scheduler::ApiWorkerScheduler;
 use crate::awaited_action_db::AwaitedActionDb;
 use crate::platform_property_manager::PlatformPropertyManager;
 use crate::simple_scheduler_state_manager::SimpleSchedulerStateManager;
-use crate::worker::{ActionInfoWithProps, Worker, WorkerTimestamp};
+use crate::worker::{ActionInfoWithProps, Timestamp, Worker};
 use crate::worker_scheduler::WorkerScheduler;
 
 /// Default timeout for workers in seconds.
@@ -445,7 +445,7 @@ impl WorkerScheduler for SimpleScheduler {
     async fn worker_keep_alive_received(
         &self,
         worker_id: &WorkerId,
-        timestamp: WorkerTimestamp,
+        timestamp: Timestamp,
     ) -> Result<(), Error> {
         self.worker_scheduler
             .worker_keep_alive_received(worker_id, timestamp)
@@ -456,7 +456,7 @@ impl WorkerScheduler for SimpleScheduler {
         self.worker_scheduler.remove_worker(worker_id).await
     }
 
-    async fn remove_timedout_workers(&self, now_timestamp: WorkerTimestamp) -> Result<(), Error> {
+    async fn remove_timedout_workers(&self, now_timestamp: Timestamp) -> Result<(), Error> {
         self.worker_scheduler
             .remove_timedout_workers(now_timestamp)
             .await

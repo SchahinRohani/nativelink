@@ -19,7 +19,7 @@ use nativelink_util::action_messages::{OperationId, WorkerId};
 use nativelink_util::operation_state_manager::UpdateOperationType;
 
 use crate::platform_property_manager::PlatformPropertyManager;
-use crate::worker::{Worker, WorkerTimestamp};
+use crate::worker::{Timestamp, Worker};
 
 /// WorkerScheduler interface is responsible for interactions between the scheduler
 /// and worker related operations.
@@ -43,7 +43,7 @@ pub trait WorkerScheduler: Sync + Send + Unpin + RootMetricsComponent + 'static 
     async fn worker_keep_alive_received(
         &self,
         worker_id: &WorkerId,
-        timestamp: WorkerTimestamp,
+        timestamp: Timestamp,
     ) -> Result<(), Error>;
 
     /// Removes worker from pool and reschedule any tasks that might be running on it.
@@ -51,7 +51,7 @@ pub trait WorkerScheduler: Sync + Send + Unpin + RootMetricsComponent + 'static 
 
     /// Removes timed out workers from the pool. This is called periodically by an
     /// external source.
-    async fn remove_timedout_workers(&self, now_timestamp: WorkerTimestamp) -> Result<(), Error>;
+    async fn remove_timedout_workers(&self, now_timestamp: Timestamp) -> Result<(), Error>;
 
     /// Sets if the worker is draining or not.
     async fn set_drain_worker(&self, worker_id: &WorkerId, is_draining: bool) -> Result<(), Error>;

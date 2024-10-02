@@ -36,7 +36,7 @@ use nativelink_util::known_platform_property_provider::KnownPlatformPropertyProv
 use nativelink_util::operation_state_manager::{
     ActionStateResult, ActionStateResultStream, ClientStateManager, OperationFilter,
 };
-use nativelink_util::retry::{Retrier, RetryResult};
+use nativelink_util::retry::{Attempt, Retrier};
 use nativelink_util::{background_spawn, tls_utils};
 use parking_lot::Mutex;
 use rand::rngs::OsRng;
@@ -142,7 +142,7 @@ impl GrpcScheduler {
                 Some((
                     request(input_clone)
                         .await
-                        .map_or_else(RetryResult::Retry, RetryResult::Ok),
+                        .map_or_else(Attempt::Retry, Attempt::Ok),
                     input,
                 ))
             }))

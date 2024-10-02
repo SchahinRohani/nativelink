@@ -367,7 +367,7 @@ pub struct LocalWorker<T: WorkerApiClientTrait, U: RunningActionsManager> {
 
 /// Creates a new `LocalWorker`. The `cas_store` must be an instance of
 /// `FastSlowStore` and will be checked at runtime.
-pub async fn new_local_worker(
+pub async fn new(
     config: Arc<LocalWorkerConfig>,
     cas_store: Store,
     ac_store: Option<Store>,
