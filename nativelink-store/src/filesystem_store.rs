@@ -294,6 +294,7 @@ impl Debug for FileEntryImpl {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         f.debug_struct("FileEntryImpl")
             .field("data_size", &self.data_size)
+            .field("block_size", &self.block_size)
             .field("encoded_file_path", &"<behind mutex>")
             .finish()
     }
