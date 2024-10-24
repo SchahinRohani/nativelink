@@ -80,6 +80,11 @@ use tracing_subscriber::layer::SubscriberExt;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
+/// Default nativelink cli strings
+const NAME: &str = "NativeLink";
+const VERSION: &str = "v0.5.3";
+const CLI_SEPERATOR: &str = "------------------------------";
+
 /// Note: This must be kept in sync with the documentation in `PrometheusConfig::path`.
 const DEFAULT_PROMETHEUS_METRICS_PATH: &str = "/metrics";
 
@@ -770,7 +775,7 @@ async fn inner_main(
             http.http2().max_header_list_size(value);
         }
 
-        event!(Level::WARN, "Ready, listening on {socket_addr}",);
+        event!(Level::INFO, "Ready, listening on {socket_addr}",);
         root_futures.push(Box::pin(async move {
             loop {
                 // Wait for client to connect.
@@ -783,7 +788,7 @@ async fn inner_main(
                 };
                 event!(
                     target: "nativelink::services",
-                    Level::INFO,
+                    Level::WARN,
                     ?remote_addr,
                     ?socket_addr,
                     "Client connected"
@@ -955,8 +960,12 @@ async fn get_config() -> Result<CasConfig, Box<dyn std::error::Error>> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("{NAME} {VERSION}");
+    println!("{CLI_SEPERATOR}");
+
     init_tracing()?;
 
+    event!(Level::INFO, "Starting NativeLink...",);
     let mut cfg = futures::executor::block_on(get_config())?;
 
     let (mut metrics_enabled, max_blocking_threads) = {

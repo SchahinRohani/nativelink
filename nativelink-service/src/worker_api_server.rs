@@ -260,14 +260,14 @@ impl WorkerApi for WorkerApiServer {
         resp
     }
 
-    #[allow(clippy::blocks_in_conditions)]
-    #[instrument(
-        err,
-        ret(level = Level::INFO),
-        level = Level::INFO,
-        skip_all,
-        fields(request = ?grpc_request.get_ref())
-    )]
+    // #[allow(clippy::blocks_in_conditions)]
+    // #[instrument(
+    //     err,
+    //     ret(level = Level::INFO),
+    //     level = Level::INFO,
+    //     skip_all,
+    //     fields(request = ?grpc_request.get_ref())
+    // )]
     async fn keep_alive(
         &self,
         grpc_request: Request<KeepAliveRequest>,

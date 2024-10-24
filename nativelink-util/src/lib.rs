@@ -54,7 +54,7 @@ pub fn init_tracing() -> Result<(), nativelink_error::Error> {
     }
     *logging_initized_guard = true;
     let env_filter = tracing_subscriber::EnvFilter::builder()
-        .with_default_directive(tracing::metadata::LevelFilter::WARN.into())
+        .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
         .from_env_lossy();
 
     // Setup tracing logger for multiple format types, compact, json, and pretty as a single layer.

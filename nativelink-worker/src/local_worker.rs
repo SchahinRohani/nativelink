@@ -248,11 +248,11 @@ impl<'a, T: WorkerApiClientTrait, U: RunningActionsManager> LocalWorkerImpl<'a, 
                                         r
                                     })
                                     .and_then(|action| {
-                                        event!(
-                                            Level::INFO,
-                                            operation_id = ?action.get_operation_id(),
-                                            "Received request to run action"
-                                        );
+                                        // event!(
+                                        //     Level::INFO,
+                                        //     operation_id = ?action.get_operation_id(),
+                                        //     "Received request to run action"
+                                        // );
                                         action
                                             .clone()
                                             .prepare_action()
@@ -549,7 +549,7 @@ impl<T: WorkerApiClientTrait, U: RunningActionsManager> LocalWorker<T, U> {
                     ),
                 };
             event!(
-                Level::WARN,
+                Level::INFO,
                 worker_id = %inner.worker_id,
                 "Worker registered with scheduler"
             );
